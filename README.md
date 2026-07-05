@@ -89,8 +89,7 @@ and correction, and the candidate-rescoring / test-time-training / meta-encoder 
 
 ## Citation
 
-See `CITATION.cff`. If you use the base training pipeline itself, please also cite
-[mdlARC](https://github.com/mvakde/mdlARC).
+See `CITATION.cff`. 
 
 ## License
 
