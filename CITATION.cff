@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite it as below."
+title: "procedural-augmentation-arc"
+type: software
+authors:
+  - name: "Abhijeet Bhattacharya"
+repository-code: "https://github.com/Abhijeet399/procedural-augmentation-arc"
+license: MIT
+date-released: 2026-07-04
+abstract: >
+  A controlled, audited application of procedural data generation (re-ARC generators)
+  to a transductive ARC-AGI-1 solver, with a data-leakage audit and correction, and
+  test-time-training / candidate-rescoring / meta-encoder prototypes. Builds on the
+  mdlARC training pipeline (https://github.com/mvakde/mdlARC) by Mithil Vakde; see
+  NOTICE.md for the file-level attribution breakdown.

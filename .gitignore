@@ -1,0 +1,25 @@
+# Model checkpoints
+*.pt
+*.pth
+*.ckpt
+
+# Large dataset / eval assets (fetch or build via dataset_building_scripts/)
+assets/
+assets_tmp/
+
+# Training runs, logs, eval outputs (see results/ for the distilled numbers)
+runs/
+
+# Temporary dataset-generation / working directories
+new_dataset_scripts/
+misc/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# OS / editor
+.DS_Store
+.claude/

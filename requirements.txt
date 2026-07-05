@@ -1,0 +1,5 @@
+torch
+flash-attn
+numpy
+numba
+matplotlib
