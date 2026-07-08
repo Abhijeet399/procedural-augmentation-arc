@@ -1,7 +1,7 @@
 # procedural-augmentation-arc
 
 Controlled, audited application of procedural data generation (re-ARC generators) to a
-transductive ARC-AGI-1 solver — from a 37.6% baseline to 61.25% (leak-adjusted) on the
+transductive ARC-AGI-1 solver — from a 37.6% baseline to 61.50% on the
 ARC-1 public evaluation set, plus test-time training, candidate rescoring, and
 augmentation-invariant embedding experiments built on top of that base.
 
