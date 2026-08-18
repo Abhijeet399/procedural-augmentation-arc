@@ -16,7 +16,7 @@ the leak-adjusted numbers, and exact commands to reproduce every result below.
 | re-ARC generator swap | 59.4% | `experiments/02_rearc_swap` |
 | cap=300 ablation (per-task pair cap raised to 300) | 56.75% — **regression, not adopted** | `experiments/03_cap300_ablation` |
 | Schedule extension (650 → 750 → 1000 epochs) | 60.6% → 61.5% (raw) | `experiments/04_schedule_extension` |
-| Schedule extension, leak-adjusted | **61.25%** | after correcting the `070dd51e` train/eval collision (see below) |
+| Schedule extension, leak-adjusted | **61.4%** | after correcting the `070dd51e` train/eval collision (see below) |
 
 All numbers are re-verified directly against `assets/solutions.json`; see
 `results/score_table.md` for the full per-checkpoint sweep and `results/fully_solved/` for
