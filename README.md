@@ -37,7 +37,7 @@ the 400-task evaluation set (`assets/solutions.json`) — a genuine train/eval c
 underlying ARC-1 asset files. Every re-ARC-trained checkpoint solves it; the baseline
 (no re-ARC) checkpoint does not — indicating the re-ARC augmentation pipeline amplifies the
 leak's effect rather than merely inheriting it. The epoch-1000 checkpoint's raw score
-(246/400 = 61.5%) includes this task; the leak-adjusted score (245/400 = 61.25%) removes
+(246/400 = 61.5%) includes this task; the leak-adjusted score (245/400 = 61.4%) removes
 credit for it. See `results/leak_audit.md` and `experiments/05_leak_audit/` for the audit
 methodology and a reusable `leak_check.py`.
 
