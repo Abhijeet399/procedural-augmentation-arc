@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Procedural Augmentation for ARC</title>
+<meta name="description" content="A controlled, audited application of procedural data generation (re-ARC generators) to a transductive ARC-AGI-1 solver: 37.6% → 61.25% leak-adjusted on the ARC-1 public evaluation set. By Abhijeet Bhattacharya.">
+<meta name="author" content="Abhijeet Bhattacharya">
+<meta property="og:title" content="Procedural Augmentation for ARC">
+<meta property="og:description" content="37.6% → 61.25% (leak-adjusted) on ARC-AGI-1 public eval with procedurally generated training data, plus a data-leakage audit.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --surface-2: #f3f1ec;
+  --text: #1c1b19;
+  --muted: #5f5b53;
+  --border: #e4e0d7;
+  --accent: #2b59c3;
+  --accent-soft: #e6ecfa;
+  --good: #1f7a4d;
+  --bad: #b4441f;
+  --bad-soft: #f8e6de;
+  --code-bg: #f3f1ec;
+  /* ARC palette */
+  --c0: #000000; --c1: #0074d9; --c2: #ff4136; --c3: #2ecc40; --c4: #ffdc00;
+  --c5: #aaaaaa; --c6: #f012be; --c7: #ff851b; --c8: #7fdbff; --c9: #870c25;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141412;
+    --surface: #1c1c19;
+    --surface-2: #24241f;
+    --text: #ecebe6;
+    --muted: #a6a398;
+    --border: #33322c;
+    --accent: #7ea2f0;
+    --accent-soft: #1f2a44;
+    --good: #5cc490;
+    --bad: #f08a63;
+    --bad-soft: #3a2219;
+    --code-bg: #22221e;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141412;
+  --surface: #1c1c19;
+  --surface-2: #24241f;
+  --text: #ecebe6;
+  --muted: #a6a398;
+  --border: #33322c;
+  --accent: #7ea2f0;
+  --accent-soft: #1f2a44;
+  --good: #5cc490;
+  --bad: #f08a63;
+  --bad-soft: #3a2219;
+  --code-bg: #22221e;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.65 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.88em; }
+code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; }
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  line-height: 1.55;
+  margin: 12px 0 0;
+}
+pre code { background: none; padding: 0; font-size: 0.85rem; }
+
+.wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+
+/* Nav */
+nav {
+  position: sticky; top: 0; z-index: 10;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 54px; gap: 12px; }
+nav .brand { font-weight: 600; color: var(--text); white-space: nowrap; }
+nav .links { display: flex; gap: 18px; font-size: 0.92rem; overflow-x: auto; }
+nav .links a { color: var(--muted); white-space: nowrap; }
+nav .links a:hover { color: var(--text); text-decoration: none; }
+@media (max-width: 640px) { nav .links a.opt { display: none; } }
+
+/* Hero */
+header.hero { padding: 64px 0 40px; }
+.hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: center; }
+@media (max-width: 720px) { .hero-grid { grid-template-columns: 1fr; } .arc-art { display: none; } }
+.eyebrow { font-size: 0.82rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h1 { font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.12; margin: 10px 0 16px; letter-spacing: -0.02em; }
+.lede { font-size: 1.12rem; color: var(--muted); max-width: 60ch; margin: 0; }
+.byline { margin-top: 18px; font-size: 0.95rem; color: var(--muted); }
+.byline strong { color: var(--text); font-weight: 600; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-radius: 8px; font-weight: 500; font-size: 0.95rem;
+  border: 1px solid var(--border); color: var(--text); background: var(--surface);
+}
+.btn:hover { text-decoration: none; border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+:root[data-theme="dark"] .btn.primary { color: #0e1424; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #0e1424; } }
+
+.arc-art { display: flex; align-items: center; gap: 14px; }
+.arc-art .grid { display: grid; gap: 2px; padding: 2px; background: var(--border); border-radius: 4px; }
+.arc-art .grid span { width: 16px; height: 16px; border-radius: 1px; }
+.arc-art .arrow { color: var(--muted); font-size: 1.4rem; }
+
+/* Stats */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 8px 0 0; }
+@media (max-width: 640px) { .stats { grid-template-columns: 1fr; } }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+.stat .num { font-size: 2rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .lbl { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+/* Sections */
+section { padding: 48px 0 8px; }
+h2 { font-size: 1.55rem; letter-spacing: -0.01em; margin: 0 0 8px; }
+h3 { font-size: 1.08rem; margin: 0 0 6px; }
+.section-lede { color: var(--muted); margin: 0 0 24px; max-width: 68ch; }
+p { margin: 0 0 14px; }
+
+/* Chart */
+.chart { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 22px 20px 16px; }
+.bar-row { display: grid; grid-template-columns: 200px 1fr; gap: 14px; align-items: center; margin-bottom: 12px; }
+@media (max-width: 640px) { .bar-row { grid-template-columns: 1fr; gap: 4px; } }
+.bar-label { font-size: 0.92rem; }
+.bar-label small { display: block; color: var(--muted); font-size: 0.8rem; }
+.bar-track { position: relative; height: 26px; background: var(--surface-2); border-radius: 5px; }
+.bar-fill { height: 100%; border-radius: 5px; background: var(--accent); }
+.bar-fill.bad { background: var(--bad); }
+.bar-fill.base { background: var(--muted); }
+.bar-val { position: absolute; top: 50%; transform: translateY(-50%); font-size: 0.85rem; font-weight: 600; font-variant-numeric: tabular-nums; padding-left: 8px; }
+.chart-note { color: var(--muted); font-size: 0.84rem; margin-top: 10px; }
+
+/* Timeline */
+.steps { list-style: none; padding: 0; margin: 0; border-left: 2px solid var(--border); }
+.steps li { position: relative; padding: 0 0 26px 26px; }
+.steps li::before {
+  content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--bg); border: 2px solid var(--accent);
+}
+.steps li.neg::before { border-color: var(--bad); }
+.steps .tag { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-left: 6px; vertical-align: 2px; }
+.steps li.neg .tag { background: var(--bad-soft); color: var(--bad); }
+.steps p { color: var(--muted); margin: 4px 0 0; }
+.steps code { font-size: 0.82em; }
+
+/* Callout */
+.callout { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--bad); border-radius: 8px; padding: 18px 20px; }
+.callout p:last-child { margin-bottom: 0; }
+
+/* Table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.04em; background: var(--surface-2); }
+tr:last-child td { border-bottom: none; }
+td.num { font-variant-numeric: tabular-nums; text-align: right; }
+th.num { text-align: right; }
+.yes { color: var(--bad); font-weight: 500; }
+.no { color: var(--good); font-weight: 500; }
+tr.best td { font-weight: 600; }
+
+/* Cards */
+.cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+.card p { color: var(--muted); margin: 0; font-size: 0.94rem; }
+.card .file { font-size: 0.8rem; margin-top: 10px; display: block; color: var(--muted); }
+
+footer { margin-top: 64px; padding: 28px 0 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.9rem; }
+footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+
+.theme-toggle { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 6px; padding: 4px 9px; cursor: pointer; font: inherit; font-size: 0.85rem; }
+.theme-toggle:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#">procedural-augmentation-arc</a>
+    <div class="links">
+      <a href="#results">Results</a>
+      <a href="#experiments" class="opt">Experiments</a>
+      <a href="#audit">Leak audit</a>
+      <a href="#prototypes" class="opt">Prototypes</a>
+      <a href="#reproduce">Reproduce</a>
+      <a href="https://github.com/Abhijeet399/procedural-augmentation-arc">GitHub</a>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle color theme">◐</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">ARC-AGI-1 · Research project</div>
+        <h1>Procedural Augmentation for ARC</h1>
+        <p class="lede">A controlled, audited study of procedurally generated training data for a transductive ARC-AGI-1 solver, taking it from <strong>37.6%</strong> to <strong>61.25%</strong> (leak-adjusted) on the ARC-1 public evaluation set.</p>
+        <p class="byline">A project by <strong>Abhijeet Bhattacharya</strong></p>
+        <div class="cta">
+          <a class="btn primary" href="https://github.com/Abhijeet399/procedural-augmentation-arc">View on GitHub</a>
+          <a class="btn" href="https://github.com/Abhijeet399/procedural-augmentation-arc/blob/main/REPRODUCE.md">Reproduce the results</a>
+          <a class="btn" href="#cite">Cite</a>
+        </div>
+      </div>
+      <div class="arc-art" aria-hidden="true">
+        <div class="grid" id="gridIn" style="grid-template-columns: repeat(5, 16px)"></div>
+        <div class="arrow">→</div>
+        <div class="grid" id="gridOut" style="grid-template-columns: repeat(5, 16px)"></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div class="stats">
+    <div class="stat"><div class="num">+23.65 pts</div><div class="lbl">Leak-adjusted gain over the no-augmentation baseline</div></div>
+    <div class="stat"><div class="num">245 / 400</div><div class="lbl">Leak-adjusted score of the best checkpoint (epoch 1000)</div></div>
+    <div class="stat"><div class="num">1</div><div class="lbl">Train/eval collision found and corrected for in every reported number</div></div>
+  </div>
+
+  <section id="overview">
+    <h2>Overview</h2>
+    <p>The Abstraction and Reasoning Corpus (ARC) asks a model to infer a hidden grid-transformation rule from a handful of demonstration pairs, then apply it to a new input. With only a few examples per task, training data is the main bottleneck.</p>
+    <p>This project tests one question in a controlled way: <em>how much does procedurally generated, rule-verified training data help a transductive solver on ARC-AGI-1, and where does it stop helping?</em> Each experiment changes one variable against a fixed baseline. Every score is re-verified against the evaluation solutions and corrected for a train/eval collision the audit turned up.</p>
+    <p>On top of that base, the project explores inference-time methods: orientation canonicalization, rule-consistency candidate scoring, LoRA test-time training, DFS decoding with product-of-experts rescoring, and augmentation-invariant task embeddings.</p>
+  </section>
+
+  <section id="results">
+    <h2>Results</h2>
+    <p class="section-lede">ARC-1 public evaluation set: 400 tasks, 2 attempts per task, partial credit per test pair. All bars show leak-adjusted scores.</p>
+    <div class="chart" role="img" aria-label="Leak-adjusted scores: baseline 37.625%, re-ARC swap 59.125%, cap=300 ablation 56.5%, 750 epochs 60.375%, 1000 epochs 61.25%">
+      <div id="bars"></div>
+      <div class="chart-note">Grey: baseline. Red: negative result, not adopted. Axis runs 0–70%.</div>
+    </div>
+  </section>
+
+  <section id="experiments">
+    <h2>Experiment sequence</h2>
+    <p class="section-lede">Five numbered experiments, each measured against the one before it.</p>
+    <ol class="steps">
+      <li>
+        <h3>01 · Baseline <span class="tag">37.6%</span></h3>
+        <p>Trained on the original ARC-1 training tasks plus ConceptARC, with no synthetic data. Two independent runs (v2, v3) both land at 37.625% at the end of the WSD decay schedule. Every later experiment is measured against this.</p>
+      </li>
+      <li>
+        <h3>02 · re-ARC generator swap <span class="tag">59.4%</span></h3>
+        <p>Same training setup, but each ARC-1 training task gets up to 12 synthetic pairs from the <a href="https://github.com/michaelhodel/re-arc">re-ARC</a> procedural generators appended to it. This was the biggest single gain in the project: <strong>+21.75 points</strong> from the data change alone. The dataset builder (<code>prepare_dataset_rearc.py</code>) refuses to augment any task ID that appears in the evaluation set.</p>
+      </li>
+      <li class="neg">
+        <h3>03 · cap=300 ablation <span class="tag">56.75% · regression</span></h3>
+        <p>Raising the per-task cap from 12 to 300 (about 2.4× more synthetic data) made the score <em>worse</em>. Flooding a task with synthetic variations of the same rule seems to dilute the training signal. The cap was not adopted. It is reported here because negative results are useful too.</p>
+      </li>
+      <li>
+        <h3>04 · Schedule extension <span class="tag">61.5% raw · 61.25% adj.</span></h3>
+        <p>Keeping the 12-pair dataset and extending training from 650 to 750 to 1000 epochs showed the original schedule was cutting training short. The epoch-1000 checkpoint is the best model in the project.</p>
+      </li>
+      <li class="neg">
+        <h3>05 · Data-leakage audit <span class="tag">correction</span></h3>
+        <p>A systematic check of training and evaluation task IDs found one collision. Every reported number is corrected for it; see below.</p>
+      </li>
+    </ol>
+  </section>
+
+  <section id="audit">
+    <h2>Data-leakage audit</h2>
+    <div class="callout">
+      <p>Task <code>070dd51e</code> appears in both the 1,307-task training set and the 400-task evaluation set. The collision is in the underlying ARC-1 asset files, not something the augmentation pipeline introduced.</p>
+      <p>The key detail is that <strong>the baseline checkpoint does not solve it, and every re-ARC-trained checkpoint does</strong>. Generating many synthetic pairs for every training task ID, the leaked one included, makes the leak matter more. Extra exposure to the rule makes the eval instance easier to solve through familiarity rather than generalization. Credit for this task is removed from every reported score.</p>
+    </div>
+    <div class="table-wrap" style="margin-top:16px">
+      <table>
+        <thead>
+          <tr><th>Run</th><th class="num">Raw</th><th><code>070dd51e</code> solved?</th><th class="num">Leak-adjusted</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>01 baseline, epoch 650</td><td class="num">37.625%</td><td class="no">No</td><td class="num">37.625%</td></tr>
+          <tr><td>02 re-ARC swap, epoch 650</td><td class="num">59.375%</td><td class="yes">Yes</td><td class="num">59.125%</td></tr>
+          <tr><td>03 cap=300 ablation, epoch 650</td><td class="num">56.75%</td><td class="yes">Yes</td><td class="num">56.5%</td></tr>
+          <tr><td>04 schedule extension, epoch 750</td><td class="num">60.625%</td><td class="yes">Yes</td><td class="num">60.375%</td></tr>
+          <tr class="best"><td>04 schedule extension, epoch 1000</td><td class="num">61.5%</td><td class="yes">Yes</td><td class="num">61.25%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:14px; color:var(--muted); font-size:0.92rem">The audit script is reusable: <code>experiments/05_leak_audit/leak_check.py</code> takes any training/eval pair of ARC JSON files and reports ID collisions.</p>
+  </section>
+
+  <section id="prototypes">
+    <h2>Inference-time prototypes</h2>
+    <p class="section-lede">Exploratory work in <code>experiments/06_prototypes/</code> and <code>src/</code>, built on top of the trained solver.</p>
+    <div class="cards">
+      <div class="card">
+        <h3>Orientation canonicalization</h3>
+        <p>Scores each of the 8 dihedral orientations of a task by the model's loss on the demonstrations, then runs inference in the best one.</p>
+        <code class="file">src/canonicalize.py</code>
+      </div>
+      <div class="card">
+        <h3>Rule-Consistency Scoring (RCOS)</h3>
+        <p>A correct candidate output, added as an extra demo, should <em>lower</em> the model's uncertainty on the real demos. A wrong one should raise it. Candidates are ranked by that difference in cross-entropy.</p>
+        <code class="file">src/rcos.py</code>
+      </div>
+      <div class="card">
+        <h3>LoRA test-time training</h3>
+        <p>Per-task LoRA adapters trained on the demonstrations at inference time. The memorised task embedding is zeroed and re-learned so the adapters actually receive gradient.</p>
+        <code class="file">src/lora_ttt.py</code>
+      </div>
+      <div class="card">
+        <h3>DFS + product-of-experts</h3>
+        <p>Threshold-filtered depth-first decoding to generate more varied candidates, each rescored by summed log-probability across 16 augmented views (D8 × color permutations × demo orderings).</p>
+        <code class="file">experiments/06_prototypes/prototype_poe/</code>
+      </div>
+      <div class="card">
+        <h3>Augmentation-invariant meta-encoder</h3>
+        <p>Predicts a task embedding directly from its demo pairs. A consistency loss forces the same embedding across augmented views, which gives a warm start that does not depend on orientation.</p>
+        <code class="file">src/meta_encoder.py</code>
+      </div>
+      <div class="card">
+        <h3>Checkpoint ensembling</h3>
+        <p>Weight merging and output-level ensembling across checkpoints and seeds, pooling candidates before rescoring.</p>
+        <code class="file">experiments/06_prototypes/merge_*.py</code>
+      </div>
+    </div>
+  </section>
+
+  <section id="reproduce">
+    <h2>Reproduce</h2>
+    <p class="section-lede">Every row in the results table can be regenerated. A single RTX 5090 (or equivalent) trains the 1000-epoch run in a few hours. <code>flash-attn</code> needs CUDA ≥ 12.8.</p>
+<pre><code>git clone https://github.com/Abhijeet399/procedural-augmentation-arc.git
+cd procedural-augmentation-arc
+python -m venv venv &amp;&amp; source venv/bin/activate
+pip install -r requirements.txt
+
+# Base data
+cd dataset_building_scripts
+python download_and_group.py
+python build_datasets.py arc1 --add-conceptarc --with-filtered
+cd ..
+
+# Combined ARC-1 + re-ARC dataset (12 pairs/task cap)
+python dataset_building_scripts/prepare_dataset_rearc.py \
+    --orig-challenges assets/challenges.json \
+    --rearc-tasks-dir assets/re_arc/tasks \
+    --eval-solutions assets/solutions.json \
+    --max-rearc-pairs-per-task 12 --seed 42 \
+    --out-challenges assets/combined_rearc_challenges.json
+
+# Best model (epoch 1000)
+python experiments/04_schedule_extension/run_epochs1000.py high
+
+# Audit
+python experiments/05_leak_audit/leak_check.py \
+    --train-challenges assets/challenges.json \
+    --eval-solutions assets/solutions.json</code></pre>
+    <p style="margin-top:14px">See <a href="https://github.com/Abhijeet399/procedural-augmentation-arc/blob/main/REPRODUCE.md"><code>REPRODUCE.md</code></a> for the command behind every experiment, and <a href="https://github.com/Abhijeet399/procedural-augmentation-arc/tree/main/results"><code>results/</code></a> for full per-checkpoint sweeps and the exact list of solved tasks behind each score. Checkpoints (~590 MB each) are not committed.</p>
+  </section>
+
+  <section id="cite">
+    <h2>Citation</h2>
+    <p class="section-lede">If you use the methodology, results, or modules from this project, please cite:</p>
+<pre><code>@software{bhattacharya2026procaug,
+  author = {Bhattacharya, Abhijeet},
+  title  = {procedural-augmentation-arc},
+  year   = {2026},
+  url    = {https://github.com/Abhijeet399/procedural-augmentation-arc},
+  license = {MIT}
+}</code></pre>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>© 2026 Abhijeet Bhattacharya · MIT License</span>
+    <a href="https://github.com/Abhijeet399/procedural-augmentation-arc">github.com/Abhijeet399/procedural-augmentation-arc</a>
+  </div>
+</footer>
+
+<script>
+(function () {
+  // Results bars (leak-adjusted)
+  var runs = [
+    { name: "01 Baseline", sub: "no re-ARC, epoch 650", v: 37.625, cls: "base" },
+    { name: "02 re-ARC swap", sub: "12 pairs/task, epoch 650", v: 59.125, cls: "" },
+    { name: "03 cap=300 ablation", sub: "300 pairs/task, epoch 650", v: 56.5, cls: "bad" },
+    { name: "04 Schedule extension", sub: "epoch 750", v: 60.375, cls: "" },
+    { name: "04 Schedule extension", sub: "epoch 1000 · best", v: 61.25, cls: "" }
+  ];
+  var max = 70, html = "";
+  runs.forEach(function (r) {
+    var w = (r.v / max) * 100;
+    html += '<div class="bar-row"><div class="bar-label">' + r.name + '<small>' + r.sub + '</small></div>' +
+      '<div class="bar-track"><div class="bar-fill ' + r.cls + '" style="width:' + w + '%"></div>' +
+      '<span class="bar-val" style="left:' + w + '%">' + r.v + '%</span></div></div>';
+  });
+  document.getElementById("bars").innerHTML = html;
+
+  // Decorative ARC-style task: mirror the input grid left-to-right
+  var colors = ["var(--c0)","var(--c1)","var(--c2)","var(--c3)","var(--c4)","var(--c5)","var(--c6)","var(--c7)","var(--c8)","var(--c9)"];
+  var g = [
+    [0,0,1,0,0],
+    [0,1,1,0,0],
+    [2,2,1,0,0],
+    [0,0,4,4,0],
+    [0,0,0,4,0]
+  ];
+  function render(id, grid) {
+    var el = document.getElementById(id), s = "";
+    grid.forEach(function (row) { row.forEach(function (c) { s += '<span style="background:' + colors[c] + '"></span>'; }); });
+    el.innerHTML = s;
+  }
+  render("gridIn", g);
+  render("gridOut", g.map(function (row) { return row.slice().reverse(); }));
+
+  // Theme toggle
+  var root = document.documentElement, btn = document.getElementById("themeToggle");
+  try { var saved = localStorage.getItem("theme"); if (saved) root.setAttribute("data-theme", saved); } catch (e) {}
+  btn.addEventListener("click", function () {
+    var cur = root.getAttribute("data-theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    var next = cur === "dark" ? "light" : "dark";
+    root.setAttribute("data-theme", next);
+    try { localStorage.setItem("theme", next); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
