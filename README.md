@@ -78,15 +78,6 @@ Trained checkpoints are not committed to this repository (see `models/README.md`
 best-checkpoint record). `.gitignore` excludes `*.pt`, the large `assets/*.json` dataset
 files, `runs/`, and `__pycache__`.
 
-## Background
-
-This project builds on [mdlARC](https://github.com/mvakde/mdlARC) by Mithil Vakde, used here
-under its MIT license, as the base transformer training/inference pipeline. The work in this
-repository is the procedural-augmentation research program built on top of that base: the
-re-ARC generator swap and cap ablation, the epoch-schedule extension, the data-leakage audit
-and correction, and the candidate-rescoring / test-time-training / meta-encoder prototypes in
-`experiments/06_prototypes/` and `src/`. See `NOTICE.md` for the file-level breakdown.
-
 ## Citation
 
 See `CITATION.cff`. 
